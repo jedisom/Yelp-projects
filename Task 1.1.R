@@ -1,4 +1,9 @@
-##Task 1.1
+##Task 1.1 for Coursera Data Mining Capstone
+##Note that the Yelp! data set used in this analysis can be downloaded here:
+##  https://www.yelp.ca/dataset_challenge/dataset
+
+#set working directory (change this to the local repository where you fork this code)
+setwd("C:/Users/jed.isom/version-control/Yelp-projects")
 
 #load libraries that will be needed later in the script
 library("pacman")
@@ -16,11 +21,11 @@ review[,"sample"] <- rbinom(n=dim(review)[1], size=1, prob=.05)
 #only take first 5000 results due to processing time
 corp <- Corpus(VectorSource(head(review[review$sample==1,"text"],5000)))
 rm(review)  #remove the review variable to same space in RAM
-corp <- tm_map(corp, removeNumbers)
+corp <- tm_map(corp, removeNumbers)                   #remove numbers
 corp <- tm_map(corp, content_transformer(tolower))    #lower case needs to be before stopwords
 corp <- tm_map(corp, removeWords, rev.default(stopwords('english')))  #reverse order to get contractions
 corp <- tm_map(corp, removePunctuation)   #remove after stopwords because many contractions are stop words
-corp <- tm_map(corp, stripWhitespace)
+corp <- tm_map(corp, stripWhitespace) 
 corp <- tm_map(corp, stemDocument)
 
 #turn Corpus into "DocumentTermMatrix" class
@@ -34,27 +39,27 @@ topics <- LDA(dtm, 10, method = "Gibbs")
 rm(dtm)  #remove dtm to save RAM
 
 #Get probabilities for words in Corpus for each topic
-topic.prob <- as.data.frame(t(posterior(topics)$terms))
+topic_prob <- as.data.frame(t(posterior(topics)$terms))
 
-#topic.prob[order(topic.prob$topic1), ]
-top.topic.words <- NULL
-for (i in 1:length(names(topic.prob))){
-      temp <- head(topic.prob[order(-topic.prob[,i]), ],10)
+#topic_prob[order(topic_prob$topic1), ]
+top_topic_words <- NULL
+for (i in 1:length(names(topic_prob))){
+      temp <- head(topic_prob[order(-topic_prob[,i]), ],10)
       wordColTitle <- paste("topic_",i,"_words",sep="")
       probColTitle <- paste("topic_",i,"_prob",sep="")
       
-      if (is.null(top.topic.words)){
-            top.topic.words <- as.data.frame(row.names(temp))
-            names(top.topic.words)[1] <- wordColTitle
+      if (is.null(top_topic_words)){
+            top_topic_words <- as.data.frame(row.names(temp))
+            names(top_topic_words)[1] <- wordColTitle
       } else{
-            top.topic.words[,wordColTitle] <- as.data.frame(row.names(temp))      
+            top_topic_words[,wordColTitle] <- as.data.frame(row.names(temp))      
       }
-      top.topic.words[,probColTitle] <- temp[,i]
+      top_topic_words[,probColTitle] <- temp[,i]
 }
 
 # Output to .csv file type just in case
-write.csv(top.topic.words, "Task 1.1 Output.csv")
-top.topic.words <- read.csv("Task 1.1 Output.csv", header = TRUE)
+write.csv(top_topic_words, "Task 1.1 Output.csv")
+top_topic_words <- read.csv("Task 1.1 Output.csv", header = TRUE)
 
 ##This section of the code takes the data and puts it into network
 ##format for data visualization purposes
@@ -67,7 +72,7 @@ names(nodes) <- c("Node", "Intensity", "Color")
 nodes[, 1] <- sapply(nodes[, 1], as.character)
 nodes[, 2] <- sapply(nodes[, 2], as.numeric)
 nodes[, 3] <- sapply(nodes[, 3], as.character)
-topic.colors <- c("gray", "purple", "blue", "cyan", "green", "yellow", "orange", "brown", 
+topic_colors <- c("gray", "purple", "blue", "cyan", "green", "yellow", "orange", "brown", 
                   "red", "pink")
 
 #setup the links to the root node
@@ -81,27 +86,27 @@ for (i in 1:10){
 
 #Link each of the topics to their top 10 words and add node to node data frame
 for (i in 1:10){  # cycle through all the topics
-      nodes <- rbind(nodes,c(paste("Topic",i), 1, topic.colors[i]))
+      nodes <- rbind(nodes,c(paste("Topic",i), 1, topic_colors[i]))
       for (j in 1:10){  # cycle through the top 10 words in each topic
-            word.col <- paste("topic_",i,"_words", sep="")
-            prob.col <- paste("topic_",i,"_prob", sep="")
-            word <- paste(i,": ",as.character(top.topic.words[j,word.col]),sep="")
+            word_col <- paste("topic_",i,"_words", sep="")
+            prob_col <- paste("topic_",i,"_prob", sep="")
+            word <- paste(i,": ",as.character(top_topic_words[j,word_col]),sep="")
             
             #Scale color intensity by the highest probability word in the topic
             if (j==1) {
-                  max.prob = as.numeric(top.topic.words[1,prob.col])
+                  max_prob = as.numeric(top_topic_words[1,prob_col])
             }
-            prob <- as.numeric(top.topic.words[j,prob.col])/max.prob
+            prob <- as.numeric(top_topic_words[j,prob_col])/max_prob
             links <- rbind(links, c(paste("Topic",i),word))
-            nodes <- rbind(nodes,c(word,prob, topic.colors[i]))            
+            nodes <- rbind(nodes,c(word,prob, topic_colors[i]))            
       }
 }
 
 #create variable for transparent colors
-rgb.transp <- t(col2rgb(nodes$Color))
-nodes[,"r"] <- rgb.transp[,1]/255
-nodes[,"g"] <- rgb.transp[,2]/255
-nodes[,"b"] <- rgb.transp[,3]/255
+rgb_transp <- t(col2rgb(nodes$Color))
+nodes[,"r"] <- rgb_transp[,1]/255
+nodes[,"g"] <- rgb_transp[,2]/255
+nodes[,"b"] <- rgb_transp[,3]/255
 nodes[,"t.color"]=NULL
 for (i in 1:dim(nodes)[1]){
       if (i==2){
@@ -129,7 +134,9 @@ V(net)$color <- nodes$t.color
 l<-layout.fruchterman.reingold(net) #Use this layout sytle as a starting point
 plot.id <- tkplot(net, layout = l, vertex.shape = "rectangle", vertex.size = 20,
                   vertex.size2 = 10, vertex.label.color="black")
-#manual adjustment of plot in tkplot here
+
+#I manually adjusted the plot in tkplot here to get the spacing I wanted
+
 nl<-tk_coords(plot.id)
 write.csv(nl, "task 1.1 layout.csv")      #save on hard drive just in case
 tk_close
