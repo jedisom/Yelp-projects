@@ -26,3 +26,20 @@ used in this task include:
  - Task 3.2.R
  - Task 3.docx (Word version of task report)
 
+Task 4 recommends a dish to try based on a cuisine.  Task 5 is closely related to 
+task 4 and recommends a business to go to if you want to try a given dish.  Files 
+used in this task include:
+ - Task 4 dish list.txt
+ - Task 4 and 5.R
+ - Task 4 & 5.docx
+
+Task 6 uses hygiene data provided for several restaurants stating whether the 
+restaurant passed their inspection or not.  This data is used with review data to
+predict whether restaurants will pass their hygiene inspections.  Files used in 
+this task include:
+ - hygiene.dat.additional
+ - hygiene.dat.labels
+ - hygiene.dat (this file was 100MB+ and is not currently in the repository)
+ - Task 6.1.R
+ - Task 6.2.R
+
