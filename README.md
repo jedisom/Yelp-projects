@@ -1,28 +1,57 @@
-# Yelp-LDA-topic
-1st assignment from Coursera Data Mining capstone class.  Code is in R.
+# Yelp! Academic Dataset & Data Mining Capstone
+This repository contains project files for a series of projects completed as part of a Data Mining Specialization Capstone course offered by Coursera and the University of Illinois - Urbana Champaign.  The code for these projects was all created in the R language.
 
-Task 1 creates topic models using Latent Dirichlet allocation (LDA) to summarize
-main topics in the Yelp! reviews dataset.  It also takes it a step further and 
-finds common (good and bad) topics for one restaurant.  Files used in this task
-include:
+##Dataset
+The Yelp! academic data set used to complete these project can be found [here](https://www.yelp.ca/dataset_challenge) along with descriptions of the various data files used.
+
+## Task 1
+Task 1 creates topic models using Latent Dirichlet allocation (LDA) to summarize main topics in the Yelp! reviews dataset.  It also takes it a step further and finds common (good and bad) topics for one restaurant.  
+
+### Files and Packages Used
+Files used in this task include:
+ - yelp_academic_dataset_review.JSON
  - Task 1.1.R
  - Task 1.2a.R
  - Task 1.docx (Word version of task report)
 
-Task 2 uses cuisine (store type) metadata to create similarity metrics between 
-cuisines and cluster cuisines that are similar.  Files used in this task include:
+Required R Packages include:
+ - pacman (automatically installs and calls the other packages listed)
+ - jsonlite
+ - tm
+ - topicmodels
+ - slam
+ - igraph
+ - dplyr
+
+##Task 2
+Task 2 uses cuisine (store type) metadata to create similarity metrics between cuisines and cluster cuisines that are similar.  
+
+### Files and Packages Used
+Files used in this task include:
+ - yelp_academic_dataset_business.JSON
+ - yelp_academic_dataset_review.JSON
  - Task 2.1.R
  - Task 2.2.R
  - Task 2.3.R
  - Task 2.docx (Word version of task report)
 
-Task 3 takes a seed set of dishes within a cuisine and uses Google's word2phrase
-and word2vec functions to "learn" other dishes within the given cuisine.  Files 
-used in this task include:
+Required R Packages include:
+ - pacman (automatically installs and calls the other packages listed)
+ - jsonlite
+ - tm
+ - topicmodels
+ - slam
+ - cluster
+
+##Task 3
+Task 3 takes a seed set of dishes within a cuisine and uses Google's word2phrase and word2vec functions to "learn" other dishes within the given cuisine.  
+
+### Files and Packages Used
+Files used in this task include:
  - Chinese_dishes (includes preliminary dishes and personal opinion pre-filtering)
  - Chinese_dishes.txt (file used as seed that was pre-filtered manually)
- - word2phrase.c (Got this file straight from Google)
- - word2vec. (Got this file straight from Google)
+ - word2phrase.c (Got this file straight from Google, [here](https://code.google.com/archive/p/word2vec/))
+ - word2vec. (Got this file straight from Google,  [here](https://code.google.com/archive/p/word2vec/))
  - Task 3.2.R
  - Task 3.docx (Word version of task report)
 
