@@ -2,7 +2,7 @@
 This repository contains project files for a series of projects completed as part of a Data Mining Specialization Capstone course offered by Coursera and the University of Illinois - Urbana Champaign.  The code for these projects was all created in the R language.
 
 ##Dataset
-The Yelp! academic data set used to complete these project can be found [here](https://www.yelp.ca/dataset_challenge) along with descriptions of the various data files used.
+The Yelp! academic data set used to complete these project tasks can be found [here](https://www.yelp.ca/dataset_challenge) along with descriptions of the various data files used.
 
 ## Task 1
 Task 1 creates topic models using Latent Dirichlet allocation (LDA) to summarize main topics in the Yelp! reviews dataset.  It also takes it a step further and finds common (good and bad) topics for one restaurant.  
