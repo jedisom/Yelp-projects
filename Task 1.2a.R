@@ -18,92 +18,92 @@ review <- fromJSON(sprintf("[%s]", paste(readLines(json_file), collapse=",")))
 #Find the most reviewed restaurant (3695 reviews)
 t=as.data.frame(table(review$business_id))
 temp <- head(t[order(-t$Freq), ],10)
-most_reviewed <- as.character(temp[1,1])    #4bEjOyTaDG24SY5TxsaUNQ
+most.reviewed <- as.character(temp[1,1])    #4bEjOyTaDG24SY5TxsaUNQ
 
 #subset reviews for this rest. & determine the median rating
-review1 <- review[review$business_id == most_reviewed, ]
+review1 <- review[review$business_id == most.reviewed, ]
 rm(review)  #remove the review variable to same space in RAM
-rev_med <- median(review1$stars)
-review_good <- review1[review1$stars >= rev.med, ]
-review_bad <- review1[review1$stars < rev.med, ]
+rev.med <- median(review1$stars)
+review.good <- review1[review1$stars >= rev.med, ]
+review.bad <- review1[review1$stars < rev.med, ]
 
 #Turn text into Corpus and clean up before applying model
-corp_good <- Corpus(VectorSource(review_good$text))
-corp_good <- tm_map(corp_good, removeNumbers)
-corp_good <- tm_map(corp_good, content_transformer(tolower))    #lower case needs to be before stopwords
-corp_good <- tm_map(corp_good, removeWords, rev.default(stopwords('english')))  #reverse order to get contractions
-corp_good <- tm_map(corp_good, removePunctuation)   #remove after stopwords because many contractions are stop words
-corp_good <- tm_map(corp_good, stripWhitespace)
-corp_good <- tm_map(corp_good, stemDocument)
+corp.good <- Corpus(VectorSource(review.good$text))
+corp.good <- tm_map(corp.good, removeNumbers)
+corp.good <- tm_map(corp.good, content_transformer(tolower))    #lower case needs to be before stopwords
+corp.good <- tm_map(corp.good, removeWords, rev.default(stopwords('english')))  #reverse order to get contractions
+corp.good <- tm_map(corp.good, removePunctuation)   #remove after stopwords because many contractions are stop words
+corp.good <- tm_map(corp.good, stripWhitespace)
+corp.good <- tm_map(corp.good, stemDocument)
 
-corp_bad <- Corpus(VectorSource(review_bad$text))
-corp_bad <- tm_map(corp_bad, removeNumbers)
-corp_bad <- tm_map(corp_bad, content_transformer(tolower))    #lower case needs to be before stopwords
-corp_bad <- tm_map(corp_bad, removeWords, rev.default(stopwords('english')))  #reverse order to get contractions
-corp_bad <- tm_map(corp_bad, removePunctuation)   #remove after stopwords because many contractions are stop words
-corp_bad <- tm_map(corp_bad, stripWhitespace)
-corp_bad <- tm_map(corp_bad, stemDocument)
+corp.bad <- Corpus(VectorSource(review.bad$text))
+corp.bad <- tm_map(corp.bad, removeNumbers)
+corp.bad <- tm_map(corp.bad, content_transformer(tolower))    #lower case needs to be before stopwords
+corp.bad <- tm_map(corp.bad, removeWords, rev.default(stopwords('english')))  #reverse order to get contractions
+corp.bad <- tm_map(corp.bad, removePunctuation)   #remove after stopwords because many contractions are stop words
+corp.bad <- tm_map(corp.bad, stripWhitespace)
+corp.bad <- tm_map(corp.bad, stemDocument)
 
 #turn Corpus into "DocumentTermMatrix" class
-dtm_good <- DocumentTermMatrix(corp_good)
-rowTotals_good <- as.data.frame(as.matrix(rollup(dtm_good, 2, na.rm=TRUE, FUN = sum)))
-dtm_good   <- dtm_good[rowTotals_good> 0, ] #remove all docs without words
-rm(corp_good) #remove corpus to save RAM
+dtm.good <- DocumentTermMatrix(corp.good)
+rowTotals.good <- as.data.frame(as.matrix(rollup(dtm.good, 2, na.rm=TRUE, FUN = sum)))
+dtm.good   <- dtm.good[rowTotals.good> 0, ] #remove all docs without words
+rm(corp.good) #remove corpus to save RAM
 
-dtm_bad <- DocumentTermMatrix(corp_bad)
-rowTotals_bad <- as.data.frame(as.matrix(rollup(dtm_bad, 2, na.rm=TRUE, FUN = sum)))
-dtm_bad   <- dtm_bad[rowTotals.bad> 0, ]
-rm(corp_bad) #remove corpus to save RAM
+dtm.bad <- DocumentTermMatrix(corp.bad)
+rowTotals.bad <- as.data.frame(as.matrix(rollup(dtm.bad, 2, na.rm=TRUE, FUN = sum)))
+dtm.bad   <- dtm.bad[rowTotals.bad> 0, ]
+rm(corp.bad) #remove corpus to save RAM
 
 #create LDA model based on dtm
-topics_good <- LDA(dtm_good, 10, method = "Gibbs")
-topics_bad <- LDA(dtm_bad, 5, method = "Gibbs")
-rm(dtm_good)  #remove dtm to save RAM
-rm(dtm_bad)  #remove dtm to save RAM
+topics.good <- LDA(dtm.good, 10, method = "Gibbs")
+topics.bad <- LDA(dtm.bad, 5, method = "Gibbs")
+rm(dtm.good)  #remove dtm to save RAM
+rm(dtm.bad)  #remove dtm to save RAM
 
 #Get probabilities for words in Corpus for each topic
-topic_prob_good <- as.data.frame(t(posterior(topics_good)$terms))
-topic_prob_bad <- as.data.frame(t(posterior(topics_bad)$terms))
+topic.prob.good <- as.data.frame(t(posterior(topics.good)$terms))
+topic.prob.bad <- as.data.frame(t(posterior(topics.bad)$terms))
 
 #Turn words/terms and probabilities into data frames for future use...
-top_topic_words_good <- NULL
-for (i in 1:length(names(topic_prob_good))){
-      temp <- head(topic_prob_good[order(-topic_prob_good[,i]), ],10)
-      wordColTitle <- paste("topic_",i,"_words",sep="")
-      probColTitle <- paste("topic_",i,"_prob",sep="")
+top.topic.words.good <- NULL
+for (i in 1:length(names(topic.prob.good))){
+      temp <- head(topic.prob.good[order(-topic.prob.good[,i]), ],10)
+      wordColTitle <- paste("topic.",i,".words",sep="")
+      probColTitle <- paste("topic.",i,".prob",sep="")
       
-      if (is.null(top_topic_words_good)){
-            top_topic_words_good <- as.data.frame(row.names(temp))
-            names(top_topic_words_good)[1] <- wordColTitle
+      if (is.null(top.topic.words.good)){
+            top.topic.words.good <- as.data.frame(row.names(temp))
+            names(top.topic.words.good)[1] <- wordColTitle
       } else{
-            top_topic_words_good[,wordColTitle] <- as.data.frame(row.names(temp))      
+            top.topic.words.good[,wordColTitle] <- as.data.frame(row.names(temp))      
       }
-      top_topic_words_good[,probColTitle] <- temp[,i]
+      top.topic.words.good[,probColTitle] <- temp[,i]
 }
 
-top_topic_words_bad <- NULL
-for (i in 1:length(names(topic_prob_bad))){
-      temp <- head(topic_prob_bad[order(-topic_prob_bad[,i]), ],10)
-      wordColTitle <- paste("topic_",i,"_words",sep="")
-      probColTitle <- paste("topic_",i,"_prob",sep="")
+top.topic.words.bad <- NULL
+for (i in 1:length(names(topic.prob.bad))){
+      temp <- head(topic.prob.bad[order(-topic.prob.bad[,i]), ],10)
+      wordColTitle <- paste("topic.",i,".words",sep="")
+      probColTitle <- paste("topic.",i,".prob",sep="")
       
-      if (is.null(top_topic_words_bad)){
-            top_topic_words_bad <- as.data.frame(row.names(temp))
-            names(top_topic_words_bad)[1] <- wordColTitle
+      if (is.null(top.topic.words.bad)){
+            top.topic.words.bad <- as.data.frame(row.names(temp))
+            names(top.topic.words.bad)[1] <- wordColTitle
       } else{
-            top_topic_words_bad[,wordColTitle] <- as.data.frame(row.names(temp))      
+            top.topic.words.bad[,wordColTitle] <- as.data.frame(row.names(temp))      
       }
-      top_topic_words_bad[,probColTitle] <- temp[,i]
+      top.topic.words.bad[,probColTitle] <- temp[,i]
 }
 
 #write data to hard drive just in case of crash
-write.csv(top_topic_words_good, "Task 1.2a Output.csv") #file with good review probs.
-write.csv(top_topic_words_bad, "Task 1.2b Output.csv")  #file with bad review probs.
+write.csv(top.topic.words.good, "Task 1.2a Output.csv") #file with good review probs.
+write.csv(top.topic.words.bad, "Task 1.2b Output.csv")  #file with bad review probs.
 
 #recover, start over from here if crash occurs
 rm(list=ls())
-top_topic_words_good <- read.csv("Task 1.2a Output.csv", header = TRUE)
-top_topic_words_bad <- read.csv("Task 1.2b Output.csv", header = TRUE)
+top.topic.words.good <- read.csv("Task 1.2a Output.csv", header = TRUE)
+top.topic.words.bad <- read.csv("Task 1.2b Output.csv", header = TRUE)
 
 ##This section of the code takes the data and puts it into network
 ##format for data visualization purposes
@@ -117,7 +117,7 @@ nodes[, 1] <- sapply(nodes[, 1], as.character)
 nodes[, 2] <- sapply(nodes[, 2], as.numeric)
 nodes[, 3] <- sapply(nodes[, 3], as.character)
 
-topic_colors <- rainbow(17)
+topic.colors <- rainbow(17)
 
 #create link/nodes from root to good and bad review nodes
 links[1,] <- rbind(c("Top Rest.","Good Review"))
@@ -136,44 +136,44 @@ for (i in 1:5){
 #Link each of the topics to their top 10 words and add node to node data frame
 #...for good reviews
 for (i in 1:10){  # cycle through all the topics
-      nodes <- rbind(nodes,c(paste("Topic ",i,"g", sep=""), 1, topic_colors[i+1]))
+      nodes <- rbind(nodes,c(paste("Topic ",i,"g", sep=""), 1, topic.colors[i+1]))
       for (j in 1:10){  # cycle through the top 10 words in each topic
-            word_col <- paste("topic_",i,"_words", sep="")
-            prob_col <- paste("topic_",i,"_prob", sep="")
-            word <- paste(i,"g: ",as.character(top_topic_words_good[j,word_col]),sep="")
+            word.col <- paste("topic.",i,".words", sep="")
+            prob.col <- paste("topic.",i,".prob", sep="")
+            word <- paste(i,"g: ",as.character(top.topic.words.good[j,word.col]),sep="")
             
             #Scale color intensity by the highest probability word in the topic
             if (j==1) {
-                  max.prob = as.numeric(top_topic_words_good[1,prob_col])
+                  max.prob = as.numeric(top.topic.words.good[1,prob.col])
             }
-            prob <- as.numeric(top_topic_words_good[j,prob_col])/max.prob
+            prob <- as.numeric(top.topic.words.good[j,prob.col])/max.prob
             links <- rbind(links, c(paste("Topic ",i,"g", sep=""),word))
-            nodes <- rbind(nodes,c(word,prob, topic_colors[i+1])) 
+            nodes <- rbind(nodes,c(word,prob, topic.colors[i+1])) 
       }
 }
 #...and bad
 for (i in 1:5){  # cycle through all the topics
-      nodes <- rbind(nodes,c(paste("Topic ",i,"b", sep=""), 1, topic_colors[i+11]))
+      nodes <- rbind(nodes,c(paste("Topic ",i,"b", sep=""), 1, topic.colors[i+11]))
       for (j in 1:10){  # cycle through the top 10 words in each topic
-            word_col <- paste("topic_",i,"_words", sep="")
-            prob_col <- paste("topic_",i,"_prob", sep="")
-            word <- paste(i,"b: ",as.character(top_topic_words_bad[j,word_col]),sep="")
+            word.col <- paste("topic.",i,".words", sep="")
+            prob.col <- paste("topic.",i,".prob", sep="")
+            word <- paste(i,"b: ",as.character(top.topic.words.bad[j,word.col]),sep="")
             
             #Scale color intensity by the highest probability word in the topic
             if (j==1) {
-                  max.prob = as.numeric(top_topic_words_bad[1,prob_col])
+                  max.prob = as.numeric(top.topic.words.bad[1,prob.col])
             }
-            prob <- as.numeric(top_topic_words_bad[j,prob_col])/max.prob
+            prob <- as.numeric(top.topic.words.bad[j,prob.col])/max.prob
             links <- rbind(links, c(paste("Topic ",i,"b", sep=""),word))
-            nodes <- rbind(nodes,c(word,prob, topic_colors[i+11])) 
+            nodes <- rbind(nodes,c(word,prob, topic.colors[i+11])) 
       }
 }
 
 #create variable for transparent colors based on word probability
-rgb_transp <- t(col2rgb(nodes$Color))
-nodes[,"r"] <- rgb_transp[,1]/255
-nodes[,"g"] <- rgb_transp[,2]/255
-nodes[,"b"] <- rgb_transp[,3]/255
+rgb.transp <- t(col2rgb(nodes$Color))
+nodes[,"r"] <- rgb.transp[,1]/255
+nodes[,"g"] <- rgb.transp[,2]/255
+nodes[,"b"] <- rgb.transp[,3]/255
 nodes[,"t.color"]=NULL
 for (i in 1:dim(nodes)[1]){
       nodes[i,"t.color"] <- rgb(red = nodes[i,"r"], 
