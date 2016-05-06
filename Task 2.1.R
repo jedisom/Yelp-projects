@@ -10,13 +10,13 @@ pacman::p_load(jsonlite, tm, topicmodels, slam)
 
 rm(list=ls())
 
-json_file <- "yelp_academic_dataset_business.JSON"
+json.file <- "yelp_academic_dataset_business.JSON"
 #took this line of code from http://stackoverflow.com/questions/26519455/error-parsing-json-file-with-the-jsonlite-package
-business <- fromJSON(sprintf("[%s]", paste(readLines(json_file), collapse=",")))
+business <- fromJSON(sprintf("[%s]", paste(readLines(json.file), collapse=",")))
 #this lists information about the businesses (location, hours, category, name, some attributes)
 
-json_file <- "yelp_academic_dataset_review.JSON"
-review <- fromJSON(sprintf("[%s]", paste(readLines(json_file), collapse=",")))
+json.file <- "yelp_academic_dataset_review.JSON"
+review <- fromJSON(sprintf("[%s]", paste(readLines(json.file), collapse=",")))
 #list reviews by businesses
 
 #add boolean variable to business is.restaurant
@@ -143,24 +143,24 @@ corp <- tm_map(corp, stemDocument)
 dtm <- DocumentTermMatrix(corp)
 rowTotals <- as.data.frame(as.matrix(rollup(dtm, 2, na.rm=TRUE, FUN = sum)))
 dtm   <- dtm[rowTotals> 0, ] #remove all docs without words
-wordMatrix = as.data.frame(t(as.matrix(dtm)))
+wordMatrix <- as.data.frame(t(as.matrix(dtm)))
 #rm(corp) #remove corpus to save RAM
 
 ###functions that calculate similarity score based on 2 cuisines' texts
 #This function uses a simple cosine angle between texts using term frequency vectors
-Vector_Cos <- function(tdm, q, d){
+VectorCos <- function(tdm, q, d){
       
       #subset tdm to only include "query" and the "document"
       if (q==d){
             return (0)
       } else {
             in.qd <- ((tdm[,q]>=1)|(tdm[,d]>=1))
-            tdm_qd <- tdm[in.qd,]      
+            tdm.qd <- tdm[in.qd,]      
       }
       
       # get q and d vectors for terms left
-      a <- tdm_qd[,q]
-      b <- tdm_qd[,d]
+      a <- tdm.qd[,q]
+      b <- tdm.qd[,d]
       
       theta <- acos( sum(a*b) / ( sqrt(sum(a * a)) * sqrt(sum(b * b)) ) )
       
@@ -202,7 +202,7 @@ for (c1 in cuisine.list){
             #calculate angle between 50 review vectors from each cuisine
             temp <- rep(NA,50)
             for (i in 1:length(temp)){
-                  temp[i] <- Vector_Cos(wordMatrix, c1.id[i], c2.id[i])
+                  temp[i] <- VectorCos(wordMatrix, c1.id[i], c2.id[i])
             }
             
             #average the angles and report that to similarity matrix
