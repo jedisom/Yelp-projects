@@ -10,19 +10,19 @@ pacman::p_load(jsonlite, tm, topicmodels, slam)
 
 rm(list=ls())
 
-json_file <- "yelp_academic_dataset_business.JSON"
+json.file <- "yelp_academic_dataset_business.JSON"
 #took this line of code from http://stackoverflow.com/questions/26519455/error-parsing-json-file-with-the-jsonlite-package
-business <- fromJSON(sprintf("[%s]", paste(readLines(json_file), collapse=",")))
+business <- fromJSON(sprintf("[%s]", paste(readLines(json.file), collapse=",")))
 #this lists information about the businesses (location, hours, category, name, some attributes)
 
-json_file <- "yelp_academic_dataset_review.JSON"
-review <- fromJSON(sprintf("[%s]", paste(readLines(json_file), collapse=",")))
+json.file <- "yelp_academic_dataset_review.JSON"
+review <- fromJSON(sprintf("[%s]", paste(readLines(json.file), collapse=",")))
 #list reviews by businesses
 
 #add boolean variable to business is.restaurant
 #quick and dirty code for this, but only takes a couple seconds
 for (i in 1:dim(business)[1]){
-      business[i,"is.restaurant"] = is.element("Restaurants", business[i,"categories"][[1]])
+      business[i,"is.restaurant"] <- is.element("Restaurants", business[i,"categories"][[1]])
 }
 
 #subset business dataframe for just restaurants
@@ -135,12 +135,12 @@ corp <- tm_map(corp, stemDocument)
 dtm <- DocumentTermMatrix(corp)
 rowTotals <- as.data.frame(as.matrix(rollup(dtm, 2, na.rm=TRUE, FUN = sum)))
 dtm   <- dtm[rowTotals> 0, ] #remove all docs without words
-wordMatrix = as.data.frame(t(as.matrix(dtm)))
+wordMatrix <- as.data.frame(t(as.matrix(dtm)))
 #rm(corp) #remove corpus to save RAM
 
 #function that calculates similarity score based on 2 cuisines' texts
 #This one uses Pivoted Length Normalization - Vector Space Model
-PLM_VSM <- function (tdm, q, d, M, avdl, b=0.5){
+PLM.VSM <- function (tdm, q, d, M, avdl, b=0.5){
       
       #find document length
       dl <- sum(tdm[,d])
@@ -148,29 +148,29 @@ PLM_VSM <- function (tdm, q, d, M, avdl, b=0.5){
       #subset tdm to only include words contained in cuisine 1 and cuisine 2
       in.qd <- ((tdm[,q]>=1)|(tdm[,d]>=1))
       if (q==d){
-            tdm_qd <- tdm[in.qd,]
-            df_ws <- rowSums(tdm_qd != 0) # num. of documents with each term
+            tdm.qd <- tdm[in.qd,]
+            df.ws <- rowSums(tdm.qd != 0) # num. of documents with each term
       } else {
-            tdm_qd <- tdm[in.qd,]      
-            df_ws <- rowSums(tdm_qd != 0) # num. of documents with each term
+            tdm.qd <- tdm[in.qd,]      
+            df.ws <- rowSums(tdm.qd != 0) # num. of documents with each term
       }
            
       ##calculate score using vectorized approach
       #vectorize word counts by terms
-      q.word.counts <- tdm_qd[,q]
+      q.word.counts <- tdm.qd[,q]
       if (q==d){
             d.word.counts <- q.word.counts
       } else {
-            d.word.counts <- tdm_qd[,d]
+            d.word.counts <- tdm.qd[,d]
       }
       
       #Use vector math to calculate and sum the score
       num <- (log(1+log(1+d.word.counts)))
       den <- (1-b+b*dl/avdl)
-      log_term <-log((M+1)/df_ws)
-      f_qd <- sum((q.word.counts*num/den)*log_term)
+      log.term <-log((M+1)/df.ws)
+      f.qd <- sum((q.word.counts*num/den)*log.term)
       
-      return (f_qd)
+      return (f.qd)
 }
 
 M <- dim(cuisine.review)[1]         #number of documents in corpus
@@ -186,13 +186,13 @@ for (c1 in cuisine.list){
       print(paste(cuisine.num," of ", cuisine.length, " cuisines", sep=""))
       for(c2 in cuisine.list){
             #First try with b=0.5
-            #sim.matrix[c1,c2] <- PLM_VSM(wordMatrix, c1, c2, M, avdl, b=0.5)
+            #sim.matrix[c1,c2] <- PLM.VSM(wordMatrix, c1, c2, M, avdl, b=0.5)
             
             #2nd Try with b=0.9
-            #sim.matrix[c1,c2] <- PLM_VSM(wordMatrix, c1, c2, M, avdl, b=0.9)    
+            #sim.matrix[c1,c2] <- PLM.VSM(wordMatrix, c1, c2, M, avdl, b=0.9)    
             
             #3rd Try with b=0
-            sim.matrix[c1,c2] <- PLM_VSM(wordMatrix, c1, c2, M, avdl, b=0)
+            sim.matrix[c1,c2] <- PLM.VSM(wordMatrix, c1, c2, M, avdl, b=0)
       }
 }
 
