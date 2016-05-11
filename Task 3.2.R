@@ -9,19 +9,19 @@ pacman::p_load(jsonlite, tm, topicmodels, lsa, slam, cluster)
 rm(list=ls())
 setwd("./Capstone/Raw Data")
 
-json_file <- "yelp_academic_dataset_business.JSON"
+json.file <- "yelp_academic_dataset_business.JSON"
 #took this line of code from http://stackoverflow.com/questions/26519455/error-parsing-json-file-with-the-jsonlite-package
-business <- fromJSON(sprintf("[%s]", paste(readLines(json_file), collapse=",")))
+business <- fromJSON(sprintf("[%s]", paste(readLines(json.file), collapse=",")))
 #this lists information about the businesses (location, hours, category, name, some attributes)
 
-json_file <- "yelp_academic_dataset_review.JSON"
-review <- fromJSON(sprintf("[%s]", paste(readLines(json_file), collapse=",")))
+json.file <- "yelp_academic_dataset_review.JSON"
+review <- fromJSON(sprintf("[%s]", paste(readLines(json.file), collapse=",")))
 #list reviews by businesses
 
 #add boolean variable to business is.chinese
 #quick and dirty code for this, but only takes a couple seconds
 for (i in 1:dim(business)[1]){
-  business[i,"is.chinese"] = is.element("Chinese", business[i,"categories"][[1]])
+  business[i,"is.chinese"] <- is.element("Chinese", business[i,"categories"][[1]])
 }
 
 #subset business dataframe for just restaurants
