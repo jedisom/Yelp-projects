@@ -9,19 +9,19 @@ pacman::p_load(jsonlite, tm, SDMTools, Hmisc, plyr)
 rm(list=ls())
 setwd("./Capstone/Raw Data")
 
-json_file <- "yelp_academic_dataset_business.JSON"
+json.file <- "yelp_academic_dataset_business.JSON"
 #took this line of code from http://stackoverflow.com/questions/26519455/error-parsing-json-file-with-the-jsonlite-package
-business <- fromJSON(sprintf("[%s]", paste(readLines(json_file), collapse=",")))
+business <- fromJSON(sprintf("[%s]", paste(readLines(json.file), collapse=",")))
 #this lists information about the businesses (location, hours, category, name, some attributes)
 
-json_file <- "yelp_academic_dataset_review.JSON"
-review <- fromJSON(sprintf("[%s]", paste(readLines(json_file), collapse=",")))
+json.file <- "yelp_academic_dataset_review.JSON"
+review <- fromJSON(sprintf("[%s]", paste(readLines(json.file), collapse=",")))
 #list reviews by businesses
 
 #add boolean variable to business is.chinese
 #quick and dirty code for this, but only takes a couple seconds
 for (i in 1:dim(business)[1]){
-  business[i,"is.chinese"] = is.element("Chinese", business[i,"categories"][[1]])
+  business[i,"is.chinese"] <- is.element("Chinese", business[i,"categories"][[1]])
 }
 
 #subset business dataframe for just restaurants
@@ -174,7 +174,7 @@ barplot(head(dish.results[,"average rating"],100), main="Top 100 Dishes' Mean St
 mtext("Dishes", 1, 5.5, cex = 1.4)
 
 #Create and show gradient legend for colors of bars in the chart
-pnts = cbind(x =c(70,77,77,70), y =c(4.55,4.55,4,4))
+pnts <- cbind(x =c(70,77,77,70), y =c(4.55,4.55,4,4))
 legend.colors <- palette(floor(max.review/100))[1:47]
 legend.gradient(pnts, cols = legend.colors, limits = c(1, max.review), 
                 title = "Reviews w/ Dish")
@@ -190,7 +190,7 @@ rcorr(as.matrix(dish.results[, 2:4]), type="pearson")
 plot(dish.results[,"average rating"], dish.results[,"chatter"], col = dish.results$Col, 
      type = "p", bg = dish.results$Col, pch=16, main="Chatter versus Average Rating", 
      xlab="Average Star Rating", ylab= "Chatter (Count of mentions of dish)")
-pnts = cbind(x =c(4,4.1,4.1,4), y =c(6000,6000,3000,3000))
+pnts <- cbind(x =c(4,4.1,4.1,4), y =c(6000,6000,3000,3000))
 legend.colors <- palette(floor(max.review/100))[1:47]
 legend.gradient(pnts, cols = legend.colors, limits = c(1, max.review), 
                 title = "Reviews w/ Dish")
@@ -232,6 +232,6 @@ par(opa=c(0,0,0,0)) #This is the default
 barplot(names.arg=head(bus.dish.result$name,50),head(bus.dish.result[,"F1"],50), 
         main="Top 50 Restaurants for Dim Sum",xlab="", ylab= "F-Score (stars and review count combined)",
         col = "blue", cex.names = .6, las=2, ylim=c(.6, .9), xpd=FALSE)
-#names.arg=bus.dish.result$name
+#names.arg<-bus.dish.result$name
 #print the x axis title to the plot seperately to get the spacing of the text right
 mtext("Restaurants", 1, 10, cex = 1.4)
