@@ -146,10 +146,10 @@ for (i in 1:nrows){
 tRows <- 1:546
 tLabels <- as.matrix(labels,ncol=1)[tRows,1]
 cuisine.fail <- matrix(tLabels, ncol=1)
-cuisine.fail = cbind(cuisine.fail, X[1:546, cuisine.list])
+cuisine.fail <- cbind(cuisine.fail, X[1:546, cuisine.list])
 names(cuisine.fail) <- c("pass_fail", cuisine.list)
-cuisine.pass = cuisine.fail[cuisine.fail[,1]==0, ]
-cuisine.fail = cuisine.fail[cuisine.fail[,1]==1, ]
+cuisine.pass <- cuisine.fail[cuisine.fail[,1]==0, ]
+cuisine.fail <- cuisine.fail[cuisine.fail[,1]==1, ]
 cuisine.diff <- colSums(cuisine.pass[, cuisine.list])-colSums(cuisine.fail[, cuisine.list])
 pred.cuisines <- names(cuisine.diff[cuisine.diff!=0])
 
@@ -215,9 +215,9 @@ write(submission, file="SVMSubmission2.txt")
 ###
 #figure out which cuisines might be used as predictors for pass/fail
 cuisine.fail <- matrix(tLabels, ncol=1)
-cuisine.fail = cbind(cuisine.fail, X[1:546, cuisine.list])
+cuisine.fail <- cbind(cuisine.fail, X[1:546, cuisine.list])
 names(cuisine.fail) <- c("pass_fail", cuisine.list)
-cuisine.pass = cuisine.fail[cuisine.fail[,1]==0, ]
-cuisine.fail = cuisine.fail[cuisine.fail[,1]==1, ]
+cuisine.pass <- cuisine.fail[cuisine.fail[,1]==0, ]
+cuisine.fail <- cuisine.fail[cuisine.fail[,1]==1, ]
 cuisine.diff <- colSums(cuisine.pass[, cuisine.list])-colSums(cuisine.fail[, cuisine.list])
 pred.cuisines <- names(cuisine.diff[cuisine.diff!=0])
