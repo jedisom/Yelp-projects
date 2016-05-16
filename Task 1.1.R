@@ -39,15 +39,16 @@ CleanText <- function(review) {
 	dtm   <- dtm[rowTotals> 0, ] #remove all docs without words
 	
 	return (dtm)
-
 }
 
 CreateTopTopics <- function(dtm) {
 	#create LDA model based on dtm
-	topics <- LDA(dtm, 10, method = "Gibbs")	
-
-	#Get probabilities for words in Corpus for each topic
-	topic.prob <- as.data.frame(t(posterior(topics)$terms))
+      print ("finding topics...")
+	topics <- LDA(dtm, 10, method = "Gibbs")
+	
+      #Get probabilities for words in Corpus for each topic
+	print ("Putting top topics into dataframe..")
+      topic.prob <- as.data.frame(t(posterior(topics)$terms))
 
 	#topic.prob[order(topic.prob$topic1), ]
 	top.topic.words <- NULL
@@ -67,6 +68,22 @@ CreateTopTopics <- function(dtm) {
 
 	# Output to .csv file type just in case
 	write.csv(top.topic.words, "Task 1.1 Output.csv")
+      
+      return (top.topic.words)
+}
+
+#This function was copied and pasted from this URL
+#https://stat.ethz.ch/pipermail/r-help/2004-June/053343.html
+list <- structure(NA,class="result")
+"[<-.result" <- function(x,...,value) {
+      args <- as.list(match.call())
+      args <- args[-c(1:2,length(args))]
+      length(value) <- length(args)
+      for(i in seq(along=args)) {
+            a <- args[[i]]
+            if(!missing(a)) eval.parent(substitute(a <- v,list(a=a,v=value[[i]])))
+      }
+      x
 }
 
 CreateNetwork <- function(top.topic.words){
@@ -110,7 +127,8 @@ CreateNetwork <- function(top.topic.words){
 				nodes <- rbind(nodes,c(word, prob, topic.colors[i]))            
 		  }
 	}
-	return (list[nodes, links])
+      net <- list(nodes, links)
+	return (net)
 }
 
 CreateVisualization <- function(nodes, links){
@@ -127,9 +145,9 @@ CreateVisualization <- function(nodes, links){
 				nodes[, "t.color"] <- sapply(nodes[, "t.color"], as.character)
 		  }
 		  nodes[i,"t.color"] <- rgb(red = nodes[i,"r"], 
-									blue = nodes[i,"g"], 
-									green = nodes[i,"b"],
-									alpha = nodes[i,"Intensity"])
+						    blue = nodes[i,"g"], 
+						    green = nodes[i,"b"],
+						    alpha = nodes[i,"Intensity"])
 	}
 
 	#create variable for font color for good contrast
@@ -149,26 +167,23 @@ CreateVisualization <- function(nodes, links){
 					  vertex.size2 = 10, vertex.label.color="black")
 
 	#I manually adjusted the plot in tkplot here to get the spacing I wanted
-	
-	return (plot.id)
-}
-
-DisplayFinalPlot <- function(plot.id){
-	nl<-tk.coords(plot.id)
+	#Create pause in code: http://stackoverflow.com/questions/15272916/how-to-wait-for-a-keypress-in-r
+	invisible(readline(prompt="Adjust node locations as desired then, press [enter] to continue"))
+      
+	nl<-tk_coords(plot.id)
 	write.csv(nl, "task 1.1 layout.csv")      #save on hard drive just in case
-	tk.close
+	tk_close
 	plot(net, layout = nl, vertex.shape = "rectangle", vertex.size = 25,  
-		 vertex.size2 = 5, vertex.label.color=nodes$f.color)
+	     vertex.size2 = 5, vertex.label.color=nodes$f.color)
 }
 
 json.file <- "yelp_academic_dataset_review.JSON"
 review <- LoadData(json.file)
 dtm <- CleanText(review)
 rm(review)  #remove the review variable to same space in RAM
-#rm(corp) #remove corpus to save RAM
 top.topic.words <- CreateTopTopics(dtm)
 rm(dtm)  #remove dtm to save RAM
 #top.topic.words <- read.csv("Task 1.1 Output.csv", header = TRUE)
 list[nodes, links] <- CreateNetwork(top.topic.words)
-plot.id <- CreateVisualization(nodes, links)
-DisplayFinalPlot(plot.id)
+CreateVisualization(nodes, links)
+
