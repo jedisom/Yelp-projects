@@ -10,100 +10,124 @@ setwd("C:/Users/jed.isom/version-control/Yelp-projects")
 library("pacman")
 pacman::p_load(jsonlite, tm, topicmodels, slam, dplyr)
 
-#load review data from JSON file
-rm(list=ls())
-json_file <- "yelp_academic_dataset_review.JSON"
-review <- fromJSON(sprintf("[%s]", paste(readLines(json_file), collapse=",")))
+#This function was copied and pasted from this URL
+#https://stat.ethz.ch/pipermail/r-help/2004-June/053343.html
+list <- structure(NA,class="result")
+"[<-.result" <- function(x,...,value) {
+      args <- as.list(match.call())
+      args <- args[-c(1:2,length(args))]
+      length(value) <- length(args)
+      for(i in seq(along=args)) {
+            a <- args[[i]]
+            if(!missing(a)) eval.parent(substitute(a <- v,list(a=a,v=value[[i]])))
+      }
+      x
+}
 
-#Find the most reviewed restaurant (3695 reviews)
-t=as.data.frame(table(review$business_id))
-temp <- head(t[order(-t$Freq), ],10)
-most.reviewed <- as.character(temp[1,1])    #4bEjOyTaDG24SY5TxsaUNQ
+LoadData <- function(json.file) {
 
-#subset reviews for this rest. & determine the median rating
-review1 <- review[review$business_id == most.reviewed, ]
-rm(review)  #remove the review variable to same space in RAM
-rev.med <- median(review1$stars)
-review.good <- review1[review1$stars >= rev.med, ]
-review.bad <- review1[review1$stars < rev.med, ]
+	#load review data from JSON file
+	rm(list=ls())     #remove any variables from R environment to save RAM
+	
+	review <- fromJSON(sprintf("[%s]", paste(readLines(json.file), collapse=",")))
+	#randomly sample ~1/20 of the reviews to make computation faster
+	set.seed(1)
+	review[,"sample"] <- rbinom(n=dim(review)[1], size=1, prob=.05)
+	
+	#Find the most reviewed restaurant (3695 reviews)
+	t=as.data.frame(table(review$business_id))
+	temp <- head(t[order(-t$Freq), ],10)
+	most.reviewed <- as.character(temp[1,1])    #4bEjOyTaDG24SY5TxsaUNQ
+	
+	#subset reviews for this rest. & determine the median rating
+	review1 <- review[review$business_id == most.reviewed, ]
+	return (review1)
+}
 
-#Turn text into Corpus and clean up before applying model
-corp.good <- Corpus(VectorSource(review.good$text))
-corp.good <- tm_map(corp.good, removeNumbers)
-corp.good <- tm_map(corp.good, content_transformer(tolower))    #lower case needs to be before stopwords
-corp.good <- tm_map(corp.good, removeWords, rev.default(stopwords('english')))  #reverse order to get contractions
-corp.good <- tm_map(corp.good, removePunctuation)   #remove after stopwords because many contractions are stop words
-corp.good <- tm_map(corp.good, stripWhitespace)
-corp.good <- tm_map(corp.good, stemDocument)
+SubsetGoodBad <- function(review) {
 
-corp.bad <- Corpus(VectorSource(review.bad$text))
-corp.bad <- tm_map(corp.bad, removeNumbers)
-corp.bad <- tm_map(corp.bad, content_transformer(tolower))    #lower case needs to be before stopwords
-corp.bad <- tm_map(corp.bad, removeWords, rev.default(stopwords('english')))  #reverse order to get contractions
-corp.bad <- tm_map(corp.bad, removePunctuation)   #remove after stopwords because many contractions are stop words
-corp.bad <- tm_map(corp.bad, stripWhitespace)
-corp.bad <- tm_map(corp.bad, stemDocument)
+	#subset reviews for this rest. & determine the median rating
+	rev.med <- median(review$stars)
+	review.good <- review1[review$stars >= rev.med, ]
+	review.bad <- review1[review$stars < rev.med, ]
+	
+	return (list(review.good, review.bad))
+}
 
-#turn Corpus into "DocumentTermMatrix" class
-dtm.good <- DocumentTermMatrix(corp.good)
-rowTotals.good <- as.data.frame(as.matrix(rollup(dtm.good, 2, na.rm=TRUE, FUN = sum)))
-dtm.good   <- dtm.good[rowTotals.good> 0, ] #remove all docs without words
-rm(corp.good) #remove corpus to save RAM
+CleanText <- function(review) {
 
-dtm.bad <- DocumentTermMatrix(corp.bad)
-rowTotals.bad <- as.data.frame(as.matrix(rollup(dtm.bad, 2, na.rm=TRUE, FUN = sum)))
-dtm.bad   <- dtm.bad[rowTotals.bad> 0, ]
-rm(corp.bad) #remove corpus to save RAM
+	#Turn text into Corpus and clean up before applying model
+	corp.good <- Corpus(VectorSource(review.good$text))
+	corp.good <- tm_map(corp.good, removeNumbers)
+	corp.good <- tm_map(corp.good, content_transformer(tolower))    #lower case needs to be before stopwords
+	corp.good <- tm_map(corp.good, removeWords, rev.default(stopwords('english')))  #reverse order to get contractions
+	corp.good <- tm_map(corp.good, removePunctuation)   #remove after stopwords because many contractions are stop words
+	corp.good <- tm_map(corp.good, stripWhitespace)
+	corp.good <- tm_map(corp.good, stemDocument)
 
-#create LDA model based on dtm
-topics.good <- LDA(dtm.good, 10, method = "Gibbs")
-topics.bad <- LDA(dtm.bad, 5, method = "Gibbs")
+	#turn Corpus into "DocumentTermMatrix" class
+	dtm.good <- DocumentTermMatrix(corp.good)
+	rowTotals.good <- as.data.frame(as.matrix(rollup(dtm.good, 2, na.rm=TRUE, FUN = sum)))
+	dtm.good   <- dtm.good[rowTotals.good> 0, ] #remove all docs without words
+
+	return dtm
+}
+
+CreateTopTopics <- function(dtm, n) {
+
+	#create LDA model based on dtm
+	topics <- LDA(dtm, n, method = "Gibbs")
+
+	#Get probabilities for words in Corpus for each topic
+	topic.prob <- as.data.frame(t(posterior(topics)$terms))
+
+	#Turn words/terms and probabilities into data frames for future use...
+	top.topic.words <- NULL
+	for (i in 1:length(names(topic.prob))){
+		  temp <- head(topic.prob[order(-topic.prob[,i]), ],10)
+		  wordColTitle <- paste("topic.",i,".words",sep="")
+		  probColTitle <- paste("topic.",i,".prob",sep="")
+		  
+		  if (is.null(top.topic.words)){
+				top.topic.words <- as.data.frame(row.names(temp))
+				names(top.topic.words)[1] <- wordColTitle
+		  } else{
+				top.topic.words[,wordColTitle] <- as.data.frame(row.names(temp))      
+		  }
+		  top.topic.words[,probColTitle] <- temp[,i]
+	}
+}
+
+SaveData <- function(top.topic.words.good, top.topic.words.bad){
+	#write data to hard drive just in case of crash
+	write.csv(top.topic.words.good, "Task 1.2a Output.csv") #file with good review probs.
+	write.csv(top.topic.words.bad, "Task 1.2b Output.csv")  #file with bad review probs.
+}
+
+RecoverData <- function(){
+	
+	#recover, start over from here if crash occurs
+	rm(list=ls())
+	top.topic.words.good <- read.csv("Task 1.2a Output.csv", header = TRUE)
+	top.topic.words.bad <- read.csv("Task 1.2b Output.csv", header = TRUE)
+	
+	return list(top.topic.words.good, top.topic.words.bad)
+}
+
+json.file <- "yelp_academic_dataset_review.JSON"
+review <- LoadData(json.file)
+list[review.good, review.bad] <- SubsetGoodBad(review)
+dtm.good <- CleanText(review.good)
+dtm.bad <- CleanText(review.bad)
+rm(review.good) #remove review to save RAM
+rm(review.bad)  #remove review to save RAM
+top.topic.words.good <- CreateTopTopics(dtm.good, 10)
+top.topic.words.bad <- CreateTopTopics(dtm.bad, 5)
 rm(dtm.good)  #remove dtm to save RAM
-rm(dtm.bad)  #remove dtm to save RAM
+rm(dtm.bad)   #remove dtm to save RAM
+SaveData(top.topic.words.good, top.topic.words.bad)
+#list[top.topic.words.good, top.topic.words.bad] <- RecoverData()
 
-#Get probabilities for words in Corpus for each topic
-topic.prob.good <- as.data.frame(t(posterior(topics.good)$terms))
-topic.prob.bad <- as.data.frame(t(posterior(topics.bad)$terms))
-
-#Turn words/terms and probabilities into data frames for future use...
-top.topic.words.good <- NULL
-for (i in 1:length(names(topic.prob.good))){
-      temp <- head(topic.prob.good[order(-topic.prob.good[,i]), ],10)
-      wordColTitle <- paste("topic.",i,".words",sep="")
-      probColTitle <- paste("topic.",i,".prob",sep="")
-      
-      if (is.null(top.topic.words.good)){
-            top.topic.words.good <- as.data.frame(row.names(temp))
-            names(top.topic.words.good)[1] <- wordColTitle
-      } else{
-            top.topic.words.good[,wordColTitle] <- as.data.frame(row.names(temp))      
-      }
-      top.topic.words.good[,probColTitle] <- temp[,i]
-}
-
-top.topic.words.bad <- NULL
-for (i in 1:length(names(topic.prob.bad))){
-      temp <- head(topic.prob.bad[order(-topic.prob.bad[,i]), ],10)
-      wordColTitle <- paste("topic.",i,".words",sep="")
-      probColTitle <- paste("topic.",i,".prob",sep="")
-      
-      if (is.null(top.topic.words.bad)){
-            top.topic.words.bad <- as.data.frame(row.names(temp))
-            names(top.topic.words.bad)[1] <- wordColTitle
-      } else{
-            top.topic.words.bad[,wordColTitle] <- as.data.frame(row.names(temp))      
-      }
-      top.topic.words.bad[,probColTitle] <- temp[,i]
-}
-
-#write data to hard drive just in case of crash
-write.csv(top.topic.words.good, "Task 1.2a Output.csv") #file with good review probs.
-write.csv(top.topic.words.bad, "Task 1.2b Output.csv")  #file with bad review probs.
-
-#recover, start over from here if crash occurs
-rm(list=ls())
-top.topic.words.good <- read.csv("Task 1.2a Output.csv", header = TRUE)
-top.topic.words.bad <- read.csv("Task 1.2b Output.csv", header = TRUE)
 
 ##This section of the code takes the data and puts it into network
 ##format for data visualization purposes
