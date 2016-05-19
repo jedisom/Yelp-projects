@@ -127,7 +127,8 @@ CreateNetwork <- function(top.topic.words){
 				nodes <- rbind(nodes,c(word, prob, topic.colors[i]))            
 		  }
 	}
-      net <- list(nodes, links)
+    
+	net <- list(nodes, links)
 	return (net)
 }
 
