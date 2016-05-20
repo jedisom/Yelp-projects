@@ -8,7 +8,7 @@ setwd("C:/Users/jed.isom/version-control/Yelp-projects")
 
 #load libraries that will be needed later in the script
 library("pacman")
-pacman::p_load(jsonlite, tm, topicmodels, slam, dplyr)
+pacman::p_load(jsonlite, tm, topicmodels, slam, dplyr, igraph)
 
 #This function was copied and pasted from this URL
 #https://stat.ethz.ch/pipermail/r-help/2004-June/053343.html
@@ -48,8 +48,8 @@ SubsetGoodBad <- function(review) {
 
 	#subset reviews for this rest. & determine the median rating
 	rev.med <- median(review$stars)
-	review.good <- review1[review$stars >= rev.med, ]
-	review.bad <- review1[review$stars < rev.med, ]
+	review.good <- review[review$stars >= rev.med, ]
+	review.bad <- review[review$stars < rev.med, ]
 	
 	return (list(review.good, review.bad))
 }
@@ -57,20 +57,20 @@ SubsetGoodBad <- function(review) {
 CleanText <- function(review) {
 
 	#Turn text into Corpus and clean up before applying model
-	corp.good <- Corpus(VectorSource(review.good$text))
-	corp.good <- tm_map(corp.good, removeNumbers)
-	corp.good <- tm_map(corp.good, content_transformer(tolower))    #lower case needs to be before stopwords
-	corp.good <- tm_map(corp.good, removeWords, rev.default(stopwords('english')))  #reverse order to get contractions
-	corp.good <- tm_map(corp.good, removePunctuation)   #remove after stopwords because many contractions are stop words
-	corp.good <- tm_map(corp.good, stripWhitespace)
-	corp.good <- tm_map(corp.good, stemDocument)
+	corp <- Corpus(VectorSource(review$text))
+	corp <- tm_map(corp, removeNumbers)
+	corp <- tm_map(corp, content_transformer(tolower))    #lower case needs to be before stopwords
+	corp <- tm_map(corp, removeWords, rev.default(stopwords('english')))  #reverse order to get contractions
+	corp <- tm_map(corp, removePunctuation)   #remove after stopwords because many contractions are stop words
+	corp <- tm_map(corp, stripWhitespace)
+	corp <- tm_map(corp, stemDocument)
 
 	#turn Corpus into "DocumentTermMatrix" class
-	dtm.good <- DocumentTermMatrix(corp.good)
-	rowTotals.good <- as.data.frame(as.matrix(rollup(dtm.good, 2, na.rm=TRUE, FUN = sum)))
-	dtm.good   <- dtm.good[rowTotals.good> 0, ] #remove all docs without words
+	dtm <- DocumentTermMatrix(corp)
+	rowTotals <- as.data.frame(as.matrix(rollup(dtm, 2, na.rm=TRUE, FUN = sum)))
+	dtm   <- dtm[rowTotals> 0, ] #remove all docs without words
 
-	return dtm
+	return (dtm)
 }
 
 CreateTopTopics <- function(dtm, n) {
@@ -96,6 +96,8 @@ CreateTopTopics <- function(dtm, n) {
 		  }
 		  top.topic.words[,probColTitle] <- temp[,i]
 	}
+      
+      return (top.topic.words)
 }
 
 SaveData <- function(top.topic.words.good, top.topic.words.bad){
@@ -111,7 +113,8 @@ RecoverData <- function(){
 	top.topic.words.good <- read.csv("Task 1.2a Output.csv", header = TRUE)
 	top.topic.words.bad <- read.csv("Task 1.2b Output.csv", header = TRUE)
 	
-	return list(top.topic.words.good, top.topic.words.bad)
+	top.topic.words <- list(top.topic.words.good, top.topic.words.bad)
+      return (top.topic.words)
 }
 
 
@@ -234,7 +237,9 @@ CreateVisualization <- function(nodes, links){
 	#Create pause in code: http://stackoverflow.com/questions/15272916/how-to-wait-for-a-keypress-in-r
 	invisible(readline(prompt="Adjust node locations as desired then, press [enter] to continue"))
     
-	nl<-tk_coords(plot.id)
+	#Don't close the TK Plot window before running this next line of code...
+      nl<-tk_coords(plot.id)
+      
 	write.csv(nl, "task 1.2 layout.csv")      #save on hard drive just in case
 	#nl <- read.csv("task 1.2 layout.csv", header = TRUE)  #read layout back in if needed
 	tk_close
@@ -248,6 +253,7 @@ CreateVisualization <- function(nodes, links){
 json.file <- "yelp_academic_dataset_review.JSON"
 review <- LoadData(json.file)
 list[review.good, review.bad] <- SubsetGoodBad(review)
+rm(review) #remove review to save RAM
 dtm.good <- CleanText(review.good)
 dtm.bad <- CleanText(review.bad)
 rm(review.good) #remove review to save RAM
