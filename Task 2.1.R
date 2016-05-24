@@ -8,126 +8,163 @@ pacman::p_load(jsonlite, tm, topicmodels, slam)
       #jsonlite for JSON file loading
       #tm and topicmodels for LDA topic modeling
 
-rm(list=ls())
-
-json.file <- "yelp_academic_dataset_business.JSON"
-#took this line of code from http://stackoverflow.com/questions/26519455/error-parsing-json-file-with-the-jsonlite-package
-business <- fromJSON(sprintf("[%s]", paste(readLines(json.file), collapse=",")))
-#this lists information about the businesses (location, hours, category, name, some attributes)
-
-json.file <- "yelp_academic_dataset_review.JSON"
-review <- fromJSON(sprintf("[%s]", paste(readLines(json.file), collapse=",")))
-#list reviews by businesses
-
-#add boolean variable to business is.restaurant
-#quick and dirty code for this, but only takes a couple seconds
-for (i in 1:dim(business)[1]){
-      business[i,"is.restaurant"] = is.element("Restaurants", business[i,"categories"][[1]])
-}
-
-#subset business dataframe for just restaurants
-business <- business[business[,"is.restaurant"]==TRUE,]
-
-#get only the restaurants that have a cuisine as a category (and remove low freq. cuisines...)
-non.cuisine.list <- c("Nightlife", "Lounges", "Party & Event Planning", "Event Planning & Services", 
-                      "Venues & Event Spaces", "Active Life", "Bowling", "Beer, Wine & Spirits", "Grocery", 
-                      "Meat Shops", "Dance Clubs", "Arts & Entertainment", "Music Venues", "Karaoke", 
-                      "Shopping Centers", "Shopping", "Outlet Stores", "Golf", "Convenience Stores", 
-                      "Drugstores", "Hotels & Travel", "Hotels", "Jazz & Blues", "Performing Arts", "Fashion", 
-                      "Sporting Goods", "Sports Wear", "Cinema", "Pool Halls", "Arcades", "Casinos", 
-                      "Health Markets", "Social Clubs", "Food Delivery Services", "Gift Shops", 
-                      "Flowers & Gifts", "Health & Medical", "Hospitals", "Hookah Bars", "Amusement Parks", 
-                      "Gas & Service Stations", "Automotive", "Adult Entertainment", "Beauty & Spas", 
-                      "Gyms", "Medical Spas", "Fitness & Instruction", "Day Spas", "Taxis", "Transportation", 
-                      "Auto Repair", "Colleges & Universities", "Education", "Specialty Schools", 
-                      "Cooking Schools", "RV Parks", "Home Decor", "Home & Garden", "Kitchen & Bath", 
-                      "Appliances", "Airports", "Tours", "Do-It-Yourself Food", "Cafeteria", 
-                      "Swimming Pools", "Wineries", "Art Galleries", "Bed & Breakfast", "Arts & Crafts", 
-                      "Landmarks & Historical Buildings", "Personal Shopping", "Public Services & Government", 
-                      "Street Vendors", "Dry Cleaning & Laundry", "Local Services", "Festivals", 
-                      "Farmers Market", "Internet Cafes", "Leisure Centers", "Kids Activities", "Car Wash", 
-                      "Horseback Riding", "Butcher", "Country Dance Halls", "Cultural Center", "Delicatessen", 
-                      "Home Services", "Real Estate", "Apartments", "Mass Media", "Print Media", 
-                      "Food", "Fast Food", "Bars", "Bakeries", "Coffee & Tea", "Donuts", "Caterers", 
-                      "Dive Bars", "Pubs", "Buffets", "Cafes", "Sports Bars", "Specialty Food", 
-                      "Gluten-Free", "Wine Bars", "Comfort Food", "Bagels", "Gastropubs", 
-                      "Juice Bars & Smoothies", "Breweries", "Pretzels", "Food Stands", "Island Pub",
-                      "Tapas Bars", "Cheese Shops", "Gay Bars", "Herbs & Spices", "Hot Pot", "Local Flavor", 
-                      "Brasseries", "Shaved Ice", "Food Trucks", "Food Court", "Champagne Bars", 
-                      "Bubble Tea", "Piano Bars", "Poutineries", "Beer Bar", "Distilleries", "Lebanese", 
-                      "Soup", "Caribbean", "Tea Rooms", "Cheesesteaks", "Soul Food", "Salvadoran", "Kosher", 
-                      "Polish", "Creperies", "Cuban", "Russian", "Irish", "Fruits & Veggies", "Fondue", 
-                      "Arabian", "Seafood Markets", "Peruvian", "Halal", "Dim Sum", "Mongolian", 
-                      "Persian/Iranian", "German", "Cantonese", "Taiwanese", "Argentine", 
-                      "Himalayan/Nepalese", "Moroccan", "Falafel", "Ethiopian", "African", "Indonesian", 
-                      "Turkish", "Afghan", "Tapas/Small Plates", "Basque", "Spanish", "Cocktail Bars", 
-                      "Brazilian", "Personal Chefs", "Laotian", "Szechuan", "Belgian", "Gelato", 
-                      "Live/Raw Food", "Bistros", "Chocolatiers & Shops", "Malaysian", "Singaporean", 
-                      "Burmese", "Scandinavian", "Canadian (New)", "Czech", "Slovakian", "Scottish", 
-                      "Modern European", "Bangladeshi", "Ramen", "Portuguese", "Ukrainian", "Shanghainese", 
-                      "Cambodian", "Venezuelan", "Colombian", "Dominican", "Patisserie/Cake Shop", 
-                      "Australian", "Egyptian")
-
-#create dataframe of cuisines and the business_id's associated with them
-cat.bus <- as.data.frame(matrix(c(NA,NA),nrow=1,ncol=2))
-names(cat.bus) <- c("cuisine", "business_id")
-cuisine.found <- FALSE
-
-for (i in 1:dim(business)[1]){      #go through all businesses
-      temp <- as.list(business[i,"categories"][[1]]) #get list of categories for that busines
-      if (length(temp)>=1) {  #Make sure the list isn't empty
-            for (j in 1:length(temp)){    #cycle through all categories for the business
-                  if ((temp[j] != "Restaurants")&(!is.element(temp[j],non.cuisine.list))){
-                        #filter out non-cuisines and the word "Restaurants"
-                        if (cuisine.found==FALSE){
-                              cuisine.found <- TRUE
-                              cat.bus[1,1] <- temp[j]
-                              cat.bus[1,2] <- business[i,"business_id"]
-                              cat.bus <- as.data.frame(cat.bus)
-                              names(cat.bus) <- c("cuisine", "business_id")
-                        } else {
-                              cat.bus <- rbind(cat.bus, c(temp[j], business[i,"business_id"]))
-                        }
-                  }
-            }
+#This function was copied and pasted from this URL
+#https://stat.ethz.ch/pipermail/r-help/2004-June/053343.html
+list <- structure(NA,class="result")
+"[<-.result" <- function(x,...,value) {
+      args <- as.list(match.call())
+      args <- args[-c(1:2,length(args))]
+      length(value) <- length(args)
+      for(i in seq(along=args)) {
+            a <- args[[i]]
+            if(!missing(a)) eval.parent(substitute(a <- v,list(a=a,v=value[[i]])))
       }
+      x
 }
-#get full list of all remaining cuisines
-cuisine.list <- unique(unlist(cat.bus$cuisine, use.names = FALSE))
 
-#randomly pick subset of reviews for each cuisine for future comparison
-cuisine.review <- NULL
-for (cuisine in cuisine.list){
-      #get list of businesses that have that cuisine
-      bus.list <- cat.bus[cat.bus[,"cuisine"]==cuisine, "business_id"]       
-      
-      #get list of reviews for those businesses
-      rev.list <- review[is.element(review[,"business_id"],bus.list),"text"]
-      
-      #randomly select maximum number of reviews to use as representation of the cuisine
-      #I've made sure all remaining cuisines have at least 50 reviews, but just in case...
-      rev.max <- min(50,length(rev.list))
-      set.seed(1)
-      rev.list <- sample(rev.list, rev.max, replace=FALSE)
-      
-      #Add these reviews to cuisine.review
-      cuisine.num <- match(cuisine,cuisine.list)
-      if (is.null(cuisine.review)){ #initialize dataframe
-            cuisine.review <- as.data.frame(matrix(c(1:length(rev.list), 
-                                                     rep(cuisine,length(rev.list)), 
-                                                     rev.list), ncol=3))
-            names(cuisine.review) <- c("id", "cuisine", "reviews")
-            cuisine.review[,1] <- as.character(cuisine.review[,1])
-            cuisine.review[,2] <- as.character(cuisine.review[,2])
-      } else {
-            len <- dim(cuisine.review)[1]
-            new.matrix <- as.data.frame(matrix(c((len+1):(len+length(rev.list)), 
-                                   rep(cuisine,length(rev.list)), 
-                                   rev.list), ncol=3))
-            names(new.matrix) <- c("id", "cuisine", "reviews")
-            cuisine.review <- rbind(cuisine.review, new.matrix)
-      }  
+LoadData <- function(bus.json.file, rev.json.file) {	  
+
+	#took this line of code from http://stackoverflow.com/questions/26519455/error-parsing-json-file-with-the-jsonlite-package
+	business <- fromJSON(sprintf("[%s]", paste(readLines(json.file), collapse=",")))
+	#this lists information about the businesses (location, hours, category, name, some attributes)
+
+	json.file <- "yelp_academic_dataset_review.JSON"
+	review <- fromJSON(sprintf("[%s]", paste(readLines(json.file), collapse=",")))
+	#list reviews by businesses
+
+	#add boolean variable to business is.restaurant
+	#quick and dirty code for this, but only takes a couple seconds
+	for (i in 1:dim(business)[1]){
+		  business[i,"is.restaurant"] = is.element("Restaurants", business[i,"categories"][[1]])
+	}
+
+	#subset business dataframe for just restaurants
+	business <- business[business[,"is.restaurant"]==TRUE,]
+
+	results <- list (review, business)
+	return (results)
 }
+
+GetCuisines <- function (business) {
+
+	#get only the restaurants that have a cuisine as a category (and remove low freq. cuisines...)
+	non.cuisine.list <- c("Nightlife", "Lounges", "Party & Event Planning", "Event Planning & Services", 
+						  "Venues & Event Spaces", "Active Life", "Bowling", "Beer, Wine & Spirits", "Grocery", 
+						  "Meat Shops", "Dance Clubs", "Arts & Entertainment", "Music Venues", "Karaoke", 
+						  "Shopping Centers", "Shopping", "Outlet Stores", "Golf", "Convenience Stores", 
+						  "Drugstores", "Hotels & Travel", "Hotels", "Jazz & Blues", "Performing Arts", "Fashion", 
+						  "Sporting Goods", "Sports Wear", "Cinema", "Pool Halls", "Arcades", "Casinos", 
+						  "Health Markets", "Social Clubs", "Food Delivery Services", "Gift Shops", 
+						  "Flowers & Gifts", "Health & Medical", "Hospitals", "Hookah Bars", "Amusement Parks", 
+						  "Gas & Service Stations", "Automotive", "Adult Entertainment", "Beauty & Spas", 
+						  "Gyms", "Medical Spas", "Fitness & Instruction", "Day Spas", "Taxis", "Transportation", 
+						  "Auto Repair", "Colleges & Universities", "Education", "Specialty Schools", 
+						  "Cooking Schools", "RV Parks", "Home Decor", "Home & Garden", "Kitchen & Bath", 
+						  "Appliances", "Airports", "Tours", "Do-It-Yourself Food", "Cafeteria", 
+						  "Swimming Pools", "Wineries", "Art Galleries", "Bed & Breakfast", "Arts & Crafts", 
+						  "Landmarks & Historical Buildings", "Personal Shopping", "Public Services & Government", 
+						  "Street Vendors", "Dry Cleaning & Laundry", "Local Services", "Festivals", 
+						  "Farmers Market", "Internet Cafes", "Leisure Centers", "Kids Activities", "Car Wash", 
+						  "Horseback Riding", "Butcher", "Country Dance Halls", "Cultural Center", "Delicatessen", 
+						  "Home Services", "Real Estate", "Apartments", "Mass Media", "Print Media", 
+						  "Food", "Fast Food", "Bars", "Bakeries", "Coffee & Tea", "Donuts", "Caterers", 
+						  "Dive Bars", "Pubs", "Buffets", "Cafes", "Sports Bars", "Specialty Food", 
+						  "Gluten-Free", "Wine Bars", "Comfort Food", "Bagels", "Gastropubs", 
+						  "Juice Bars & Smoothies", "Breweries", "Pretzels", "Food Stands", "Island Pub",
+						  "Tapas Bars", "Cheese Shops", "Gay Bars", "Herbs & Spices", "Hot Pot", "Local Flavor", 
+						  "Brasseries", "Shaved Ice", "Food Trucks", "Food Court", "Champagne Bars", 
+						  "Bubble Tea", "Piano Bars", "Poutineries", "Beer Bar", "Distilleries", "Lebanese", 
+						  "Soup", "Caribbean", "Tea Rooms", "Cheesesteaks", "Soul Food", "Salvadoran", "Kosher", 
+						  "Polish", "Creperies", "Cuban", "Russian", "Irish", "Fruits & Veggies", "Fondue", 
+						  "Arabian", "Seafood Markets", "Peruvian", "Halal", "Dim Sum", "Mongolian", 
+						  "Persian/Iranian", "German", "Cantonese", "Taiwanese", "Argentine", 
+						  "Himalayan/Nepalese", "Moroccan", "Falafel", "Ethiopian", "African", "Indonesian", 
+						  "Turkish", "Afghan", "Tapas/Small Plates", "Basque", "Spanish", "Cocktail Bars", 
+						  "Brazilian", "Personal Chefs", "Laotian", "Szechuan", "Belgian", "Gelato", 
+						  "Live/Raw Food", "Bistros", "Chocolatiers & Shops", "Malaysian", "Singaporean", 
+						  "Burmese", "Scandinavian", "Canadian (New)", "Czech", "Slovakian", "Scottish", 
+						  "Modern European", "Bangladeshi", "Ramen", "Portuguese", "Ukrainian", "Shanghainese", 
+						  "Cambodian", "Venezuelan", "Colombian", "Dominican", "Patisserie/Cake Shop", 
+						  "Australian", "Egyptian")
+
+	#create dataframe of cuisines and the business_id's associated with them
+	cat.bus <- as.data.frame(matrix(c(NA,NA),nrow=1,ncol=2))
+	names(cat.bus) <- c("cuisine", "business_id")
+	cuisine.found <- FALSE
+
+	for (i in 1:dim(business)[1]){      #go through all businesses
+		  temp <- as.list(business[i,"categories"][[1]]) #get list of categories for that busines
+		  if (length(temp)>=1) {  #Make sure the list isn't empty
+				for (j in 1:length(temp)){    #cycle through all categories for the business
+					  if ((temp[j] != "Restaurants")&(!is.element(temp[j],non.cuisine.list))){
+							#filter out non-cuisines and the word "Restaurants"
+							if (cuisine.found==FALSE){
+								  cuisine.found <- TRUE
+								  cat.bus[1,1] <- temp[j]
+								  cat.bus[1,2] <- business[i,"business_id"]
+								  cat.bus <- as.data.frame(cat.bus)
+								  names(cat.bus) <- c("cuisine", "business_id")
+							} else {
+								  cat.bus <- rbind(cat.bus, c(temp[j], business[i,"business_id"]))
+							}
+					  }
+				}
+		  }
+	}
+	#get full list of all remaining cuisines
+	cuisine.list <- unique(unlist(cat.bus$cuisine, use.names = FALSE))
+	result <- list(cuisine.list, cat.bus)
+	return (result)
+}
+
+GetCuisineReviews <- function(review, cuisine.list, cat.bus){
+	#randomly pick subset of reviews for each cuisine for future comparison
+	cuisine.review <- NULL
+	for (cuisine in cuisine.list){
+		  #get list of businesses that have that cuisine
+		  bus.list <- cat.bus[cat.bus[,"cuisine"]==cuisine, "business_id"]       
+		  
+		  #get list of reviews for those businesses
+		  rev.list <- review[is.element(review[,"business_id"],bus.list),"text"]
+		  
+		  #randomly select maximum number of reviews to use as representation of the cuisine
+		  #I've made sure all remaining cuisines have at least 50 reviews, but just in case...
+		  rev.max <- min(50,length(rev.list))
+		  set.seed(1)
+		  rev.list <- sample(rev.list, rev.max, replace=FALSE)
+		  
+		  #Add these reviews to cuisine.review
+		  cuisine.num <- match(cuisine,cuisine.list)
+		  if (is.null(cuisine.review)){ #initialize dataframe
+				cuisine.review <- as.data.frame(matrix(c(1:length(rev.list), 
+														 rep(cuisine,length(rev.list)), 
+														 rev.list), ncol=3))
+				names(cuisine.review) <- c("id", "cuisine", "reviews")
+				cuisine.review[,1] <- as.character(cuisine.review[,1])
+				cuisine.review[,2] <- as.character(cuisine.review[,2])
+		  } else {
+				len <- dim(cuisine.review)[1]
+				new.matrix <- as.data.frame(matrix(c((len+1):(len+length(rev.list)), 
+									   rep(cuisine,length(rev.list)), 
+									   rev.list), ncol=3))
+				names(new.matrix) <- c("id", "cuisine", "reviews")
+				cuisine.review <- rbind(cuisine.review, new.matrix)
+		  }  
+	}
+}
+
+rm(list=ls())  #Clear all old variable values to save RAM
+
+bus.json.file <- "yelp_academic_dataset_business.JSON"
+rev.json.file <- "yelp_academic_dataset_review.JSON"
+list(review, business) <- LoadData(bus.json.file, rev.json.file)
+list(cuisine.list, cat.bus) <- GetCuisines (business)
+cuisine.review <- GetCuisineReviews(review, cuisine.list, cat.bus)
+
+
+
+
+
 
 #Turn text into Corpus and clean up before creating document term matrix
 myReader <- readTabular(mapping=list(content="reviews", id="id", cuisine = "cuisine"))
